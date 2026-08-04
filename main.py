@@ -17,8 +17,8 @@ c6 = mixer.Sound("tones/c6.wav")
 
 p.init()
 clock = p.time.Clock()
-WIDTH, HEIGHT = (900, 900)
-ROWS, COLUMNS = 100,100
+WIDTH, HEIGHT = (1200, 900)
+ROWS, COLUMNS = 120,120
 CELL_SIZE = WIDTH//COLUMNS
 generation = 0
 
@@ -76,7 +76,7 @@ def check_patterns(grid):
 #     p.time.wait(2000)
 
 
-grid = np.random.choice([0,1], size = (ROWS, COLUMNS), p=[0.85, 0.15])
+grid = np.random.choice([0,1], size = (ROWS, COLUMNS), p=[0.9, 0.1])
 screen = p.display.set_mode((WIDTH, HEIGHT))
 running = True
 
@@ -99,7 +99,7 @@ def generate_tone(freq, duration=0.3):
     envelope[-fade:] = np.linspace(1,0,fade)
     wave *= envelope
     wave /= np.max(np.abs(wave))
-    audio = (wave * 32767 * 0.3).astype(np.int16)
+    audio = (wave * 32767 * 0.01).astype(np.int16)
     audio = np.column_stack((audio, audio))
     # print(audio.shape)
     return p.sndarray.make_sound(audio)
@@ -176,11 +176,25 @@ while running:
     grid = new_grid
     generation += 1
     notes = [
-        130.81, 146.83, 164.81, 196.00, 220.00,
-        261.63, 293.66, 329.63, 392.00, 440.00,
-        523.25, 587.33, 659.25, 783.99, 880.00,
-        1046.50, 1174.66, 1318.51, 1567.98, 1760.00
+        130.81,  # C3
+        146.83,  # D3
+        164.81,  # E3
+        174.61,  # F3
+        196.00,  # G3
+        220.00,  # A3
+        246.94,  # B3
+
+        261.63,  # C4
+        293.66,  # D4
+        329.63,  # E4
+        349.23,  # F4
+        392.00,  # G4
+        440.00,  # A4
+        493.88,  # B4
+
+        523.25   # C5
     ]
+
 
     glider_count = check_patterns(grid)
     # if glider_count>0:
@@ -203,7 +217,7 @@ while running:
     #     generation = 0
 
 
-    clock.tick(20)
+    clock.tick(30)
     p.display.flip()
        
 p.quit()
