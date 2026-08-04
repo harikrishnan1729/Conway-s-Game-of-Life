@@ -6,14 +6,12 @@ from numpy.lib.stride_tricks import sliding_window_view
 
 mixer.init(frequency = 44100, size=-16, channels=1)
 
-
 c1 = mixer.Sound("tones/c1.wav")
 c2 = mixer.Sound("tones/c2.wav")
 c3 = mixer.Sound("tones/c3.wav")
 c4 = mixer.Sound("tones/c4.wav")
 c5 = mixer.Sound("tones/c5.wav")
 c6 = mixer.Sound("tones/c6.wav")
-
 
 p.init()
 clock = p.time.Clock()
@@ -22,87 +20,27 @@ ROWS, COLUMNS = 100,100
 CELL_SIZE = WIDTH//COLUMNS
 generation = 0
 
-glider = np.array([
-    [0, 0, 1],
-    [1, 0, 1],
-    [0, 1, 1]
-])
 
+# pattern (fixed orientation) -> sound, and a count of matches last frame
 patterns = {
-    "glider": (glider, c5)
+    "block":   (np.array([[1,1],[1,1]]), c1),
+    "blinker": (np.array([[1,1,1]]), c2),
+    "glider":  (np.array([[0,1,0],[0,0,1],[1,1,1]]), c3),
 }
-
-gliders = [
-    glider,
-    np.rot90(glider, 1),
-    np.rot90(glider, 2),
-    np.rot90(glider, 3)
-]
+last_count = {name: 0 for name in patterns}
 
 def check_patterns(grid):
-    count = 0
-    for pat in gliders:
+    for name, (pat, snd) in patterns.items():
         windows = sliding_window_view(grid, pat.shape)
-
-        count += np.sum(
-            np.all(windows == pat, axis=(2,3))
-        )
-    return count
-
-
-
-''' karplus crazy good ngl but not much use '''
-# def karplus(frequency):
-#     sample_rate = 44100
-#     delay = int(sample_rate / frequency)
-#     buffer = np.random.uniform(-1, 1, delay)
-#     samples = []
-#     for _ in range(44100):
-#         samples.append(buffer[0])
-
-#         first = buffer[0]
-#         second = buffer[1]
-
-#         new_sample = 0.996 * (first + second) / 2
-
-#         buffer = np.append(buffer[1:], new_sample)
-
-#     samples = np.array(samples)
-#     samples = samples / np.max(np.abs(samples))
-#     audio = (samples * 32767).astype(np.int16)
-#     audio = np.column_stack((audio, audio))
-#     sound = p.sndarray.make_sound(audio)
-#     sound.play()
-#     p.time.wait(2000)
+        count = np.sum(np.all(windows == pat, axis=(2, 3)))
+        if count > last_count[name]:
+            snd.play()
+        last_count[name] = count
 
 
 grid = np.random.choice([0,1], size = (ROWS, COLUMNS), p=[0.85, 0.15])
 screen = p.display.set_mode((WIDTH, HEIGHT))
 running = True
-
-def generate_tone(freq, duration=0.3):
-    sample_rate = 44100
-    t = np.linspace(0, duration, int(sample_rate * duration), False)
-    wave = (
-    np.sin(2*np.pi*freq*t)
-    + 0.4*np.sin(2*np.pi*freq*2*t)
-    + 0.2*np.sin(2*np.pi*freq*3*t)
-    )
-
-    phase = 0
-    phase += 2*np.pi*freq*duration
-    phase %= 2*np.pi
-
-    fade = int(sample_rate * 0.05)
-    envelope = np.ones(len(wave))
-    envelope[:fade] = np.linspace(0,1,fade)
-    envelope[-fade:] = np.linspace(1,0,fade)
-    wave *= envelope
-    wave /= np.max(np.abs(wave))
-    audio = (wave * 32767 * 0.3).astype(np.int16)
-    audio = np.column_stack((audio, audio))
-    # print(audio.shape)
-    return p.sndarray.make_sound(audio)
 
 
 def inside(a, b):
@@ -171,39 +109,12 @@ while running:
                 # Reproduction
                 new_grid[row][col] = 1
 
-
-
     grid = new_grid
     generation += 1
-    notes = [
-        130.81, 146.83, 164.81, 196.00, 220.00,
-        261.63, 293.66, 329.63, 392.00, 440.00,
-        523.25, 587.33, 659.25, 783.99, 880.00,
-        1046.50, 1174.66, 1318.51, 1567.98, 1760.00
-    ]
 
-    glider_count = check_patterns(grid)
-    # if glider_count>0:
-    #     print(glider_count)
-    #     g_tone = generate_tone(100, duration=3)
-    #     g_tone.play()
+    check_patterns(grid)
 
-    population = np.sum(grid)
-    # print(population % len(notes))
-    freq = notes[population % len(notes)]
-    tone = generate_tone(freq, duration=5)
-    tone.play()
-    mixer.set_num_channels(4)
-    # print(mixer.get_num_channels())
-
-    # if generation % 5 == 0:
-    #     print(np.sum(grid))
-    #     tone = generate_tone(np.sum(grid))
-    #     tone.play()
-    #     generation = 0
-
-
-    clock.tick(20)
+    clock.tick(30)
     p.display.flip()
        
 p.quit()
